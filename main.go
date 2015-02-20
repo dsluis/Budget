@@ -3,9 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gorilla/sessions"
 	"log"
 	"net/http"
 )
+
+var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
 
 func main() {
 
@@ -21,5 +24,13 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
+
+	session, _ := store.Get(req, "user")
+
+	if user_id, exists := session["user_id"]; !exists {
+		http.Redirect(w, req, "/login", 302)
+		return
+	}
+
 	fmt.Fprintln(w, "This does nothing :(")
 }

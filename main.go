@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"html/template"
 	"log"
@@ -10,6 +11,7 @@ import (
 )
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
+var templates = template.Must(template.ParseFiles("views/login.html"))
 
 func main() {
 
@@ -17,8 +19,12 @@ func main() {
 
 	flag.Parse()
 
-	http.HandleFunc("/", index)
-	http.HandleFunc("/login", loginView)
+	router := mux.NewRouter()
+
+	router.HandleFunc("/", index)
+	router.HandleFunc("/login", loginView)
+
+	http.Handle("/", router)
 	err := http.ListenAndServe(*port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -38,6 +44,8 @@ func index(w http.ResponseWriter, req *http.Request) {
 }
 
 func loginView(w http.ResponseWriter, req *http.Request) {
-	t, _ := template.ParseFiles("login.html")
-	t.Execute(w, nil)
+	err := templates.ExecuteTemplate(w, "login.html", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

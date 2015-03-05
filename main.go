@@ -11,7 +11,7 @@ import (
 )
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
-var templates = template.Must(template.ParseFiles("views/login.html"))
+var templates = template.Must(template.ParseFiles("views/user/login.html","views/user/create.html"))
 
 func main() {
 
@@ -22,7 +22,8 @@ func main() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", index)
-	router.HandleFunc("/login", loginView)
+	router.HandleFunc("/user/login", loginView)
+    router.HandleFunc("/user/create", createView)
 
 	http.Handle("/", router)
 	err := http.ListenAndServe(*port, nil)
@@ -36,7 +37,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 	session, _ := store.Get(req, "user")
 
 	if _, exists := session.Values["user_id"]; !exists {
-		http.Redirect(w, req, "/login", 302)
+		http.Redirect(w, req, "/user/login", 302)
 		return
 	}
 
@@ -48,4 +49,11 @@ func loginView(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func createView(w http.ResponseWriter, req *http.Request) {
+    err := templates.ExecuteTemplate(w, "create.html", nil)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+    }
 }

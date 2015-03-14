@@ -11,7 +11,7 @@ import (
 )
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
-var templates = template.Must(template.ParseFiles("views/user/login.html", "views/user/create.html"))
+var templates = template.Must(template.ParseFiles("views/user/login.html", "views/user/create.html", "views/home/index.html"))
 
 func main() {
 
@@ -35,14 +35,14 @@ func main() {
 
 func index(w http.ResponseWriter, req *http.Request) {
 
-	session, _ := store.Get(req, "user")
-
-	if _, exists := session.Values["user_id"]; !exists {
-		http.Redirect(w, req, "/user/login", 302)
+	if ! authorize() {
 		return
 	}
-
-	fmt.Fprintln(w, "This does nothing :(")
+	
+	err := templates.ExecuteTemplate(w, "index.html", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func loginView(w http.ResponseWriter, req *http.Request) {
@@ -78,4 +78,14 @@ func createAction(w http.ResponseWriter, req *http.Request) {
 	session.AddFlash("Successfully Created Account", "feedback")
 	session.Save(req, w)
 	http.Redirect(w, req, "/user/login", 302)
+}
+
+func authorize(w http.ResponseWriter, req *http.Request) bool {
+	session, _ := store.Get(req, "user")
+	
+	if _, exists := session.Values["user_id"]; !exists {
+		http.Redirect(w, req, "/user/login",302)
+		return false
+	}
+	return true
 }

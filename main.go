@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"html/template"
 	"log"
 	"net/http"
+	"github.com/dsluis/budget/db"
+	
 )
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
@@ -18,6 +19,10 @@ func main() {
 	var port = flag.String("port", ":8080", "network port to receive http requests over")
 
 	flag.Parse()
+	
+	if err := db.Connect(); err != nil {
+		log.Fatal("Connect: ", err )
+	}
 
 	router := mux.NewRouter()
 
@@ -35,10 +40,10 @@ func main() {
 
 func index(w http.ResponseWriter, req *http.Request) {
 
-	if ! authorize() {
+	if ! authorize(w,req) {
 		return
 	}
-	
+
 	err := templates.ExecuteTemplate(w, "index.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

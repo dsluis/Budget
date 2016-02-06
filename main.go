@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"github.com/dsluis/budget/db"
-	
+
 )
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
@@ -19,7 +19,7 @@ func main() {
 	var port = flag.String("port", ":8080", "network port to receive http requests over")
 
 	flag.Parse()
-	
+
 	if err := db.Connect(); err != nil {
 		log.Fatal("Connect: ", err )
 	}
@@ -28,6 +28,7 @@ func main() {
 
 	router.HandleFunc("/", index)
 	router.HandleFunc("/user/login", loginView)
+	router.HandleFunc("/user/login", loginAction).Methods("POST")
 	router.HandleFunc("/user/create", createView).Methods("GET")
 	router.HandleFunc("/user/create", createAction).Methods("POST")
 
@@ -66,6 +67,9 @@ func loginView(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func loginAction(w http.ResponseWriter, req * http.Request) {
+	
+}
 func createView(w http.ResponseWriter, req *http.Request) {
 
 	err := templates.ExecuteTemplate(w, "create.html", nil)
@@ -87,7 +91,7 @@ func createAction(w http.ResponseWriter, req *http.Request) {
 
 func authorize(w http.ResponseWriter, req *http.Request) bool {
 	session, _ := store.Get(req, "user")
-	
+
 	if _, exists := session.Values["user_id"]; !exists {
 		http.Redirect(w, req, "/user/login",302)
 		return false

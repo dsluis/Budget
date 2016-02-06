@@ -1,1 +1,11 @@
 <h1>Hello!</h1>
+
+<section id="expenses">
+{{range expenses}}
+<div class="row">
+  <div>{{.Date}}</div>
+  <div>{{.Amount}}</div>
+  <div>{{.Description}}</div>
+</div>
+{{end}}
+</section>

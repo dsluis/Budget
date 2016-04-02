@@ -81,8 +81,29 @@ func createView(w http.ResponseWriter, req *http.Request) {
 func createAction(w http.ResponseWriter, req *http.Request) {
 	session, _ := store.Get(req, "user")
 
+    if err := req.ParseForm(); err != nil {
+       http.Error(w, err.Error(), http.StatusBadRequest)
+       return
+    }
+    name := req.PostForm.Get("user")
+    if name == "" {
+        http.Error(w, "Please pass a username", http.StatusBadRequest)
+        return
+    }
+    password := req.PostForm.Get("pass")
+    if password == "" {
+        http.Error(w, "Please enter a password", http.StatusBadRequest)
+        return
+    }
+    
 	//todo: validate
 	//todo: create account
+    user := db.User{ name, password }
+    
+    if err := db.CreateUser(user); err != nil {
+        http.Error(w,err.Error(),http.StatusInternalServerError)
+        return
+    }
 
 	session.AddFlash("Successfully Created Account", "feedback")
 	session.Save(req, w)

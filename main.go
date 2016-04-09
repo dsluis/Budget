@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"github.com/dsluis/budget/db"
-
+    "fmt"
 )
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
@@ -27,7 +27,7 @@ func main() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", index)
-	router.HandleFunc("/user/login", loginView)
+	router.HandleFunc("/user/login", loginView).Methods("GET")
 	router.HandleFunc("/user/login", loginAction).Methods("POST")
 	router.HandleFunc("/user/create", createView).Methods("GET")
 	router.HandleFunc("/user/create", createAction).Methods("POST")
@@ -52,7 +52,6 @@ func index(w http.ResponseWriter, req *http.Request) {
 }
 
 func loginView(w http.ResponseWriter, req *http.Request) {
-
 	session, _ := store.Get(req, "user")
 
 	data := ViewData{"", nil}
@@ -68,7 +67,32 @@ func loginView(w http.ResponseWriter, req *http.Request) {
 }
 
 func loginAction(w http.ResponseWriter, req * http.Request) {
+    session, _ := store.Get(req, "user")
+    
+    if err := req.ParseForm(); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    name := req.PostForm.Get( "user" )
+    if name == "" {
+        return
+    }
+    pw := req.PostForm.Get( "pass" )
+    if pw == "" {
+        return
+    }
 	
+    userID, err := db.LoginUser(name,pw); 
+    
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    session.Values["user_id"] = userID
+    session.Save(req,w)
+    
+    fmt.Fprintln(w, userID)
+    return
 }
 func createView(w http.ResponseWriter, req *http.Request) {
 
@@ -80,7 +104,7 @@ func createView(w http.ResponseWriter, req *http.Request) {
 
 func createAction(w http.ResponseWriter, req *http.Request) {
 	session, _ := store.Get(req, "user")
-
+    
     if err := req.ParseForm(); err != nil {
        http.Error(w, err.Error(), http.StatusBadRequest)
        return

@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
     "io/ioutil"
-    "fmt"
+    "errors"
 )
 
 var client *couch.Client
@@ -14,6 +14,11 @@ var db *couch.DB
 var userDb *couch.DB
 var uuids []string
 
+type ViewResponse struct {
+    TotalRows int `json:"total_rows"`
+    Offset int `json:"offset"`
+    Rows []interface{} `json:"rows"`
+}
 //todo: store password hash instead
 type User struct {
 	Username string
@@ -35,6 +40,21 @@ func Connect() error {
 		return err
 	}
 	return nil
+}
+
+func LoginUser(user string, pass string) (string,error) {
+    options := make( couch.Options )
+    options["key"] = user
+    resp := ViewResponse{}
+    if err := userDb.View("_design/user","user",&resp, options); err != nil {
+        return "", err
+    }
+    if len(resp.Rows) == 0 {
+        return "",errors.New("User does not exist")
+    }
+    row := resp.Rows[0].(map[string]interface{})
+    id, _ := row["id"].(string)
+    return id,nil
 }
 
 func CreateUser(u User) error {

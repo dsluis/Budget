@@ -2,17 +2,25 @@ package db
 
 import (
 	"encoding/json"
+	"encoding/base64"
 	couch "github.com/fjl/go-couchdb"
 	"log"
 	"net/http"
     "io/ioutil"
     "errors"
+	"golang.org/x/crypto/scrypt"
+	"fmt"
 )
 
 var client *couch.Client
 var db *couch.DB
 var userDb *couch.DB
 var uuids []string
+var Config DBConfig
+
+type DBConfig struct {
+	Salt string
+}
 
 type ViewResponse struct {
     TotalRows int `json:"total_rows"`
@@ -43,6 +51,7 @@ func Connect() error {
 }
 
 func LoginUser(user string, pass string) (string,error) {
+	
     options := make( couch.Options )
     options["key"] = user
     resp := ViewResponse{}
@@ -52,7 +61,18 @@ func LoginUser(user string, pass string) (string,error) {
     if len(resp.Rows) == 0 {
         return "",errors.New("User does not exist")
     }
+	key,err := scrypt.Key( []byte(pass),[]byte(Config.Salt),16384,8,1,32)
+	if err != nil {
+		return "", err
+	}
+	passAttempt := base64.StdEncoding.EncodeToString(key)
+	
     row := resp.Rows[0].(map[string]interface{})
+	passEncoded := row["value"].(string)
+
+	if passEncoded != passAttempt {
+		return "", errors.New("User does not exist")
+	}
     id, _ := row["id"].(string)
     return id,nil
 }
@@ -62,6 +82,13 @@ func CreateUser(u User) error {
 	if err != nil {
 		return err
 	}
+	var pass []byte
+	pass, err = scrypt.Key( []byte(u.Password), []byte(Config.Salt),16384,8,1,32)
+	
+	if err != nil {
+		return err
+	}
+	u.Password = base64.StdEncoding.EncodeToString(pass)
 	_, err = userDb.Put(uuid, u, "")
 	if err != nil {
 		return err

@@ -9,7 +9,14 @@ import (
 	"net/http"
 	"github.com/dsluis/budget/db"
     "fmt"
+	"encoding/json"
+	"io/ioutil"
 )
+
+type Config struct {
+	Salt string
+	CookieSecret string
+}
 
 var store = sessions.NewCookieStore([]byte("take-me-out-of-code"))
 var templates = template.Must(template.ParseFiles("views/user/login.html", "views/user/create.html", "views/home/index.html"))
@@ -17,9 +24,21 @@ var templates = template.Must(template.ParseFiles("views/user/login.html", "view
 func main() {
 
 	var port = flag.String("port", ":8080", "network port to receive http requests over")
+	var configPath = flag.String("config","config.json","path to json config file")
 
 	flag.Parse()
-
+	
+	file, err := ioutil.ReadFile(*configPath)
+	if err != nil {
+		log.Fatal("Missing Config File")
+	}
+	var config Config
+	if err := json.Unmarshal(file,&config); err != nil {
+		log.Fatal("Invalid Config File: " + err.Error() )
+	}
+	
+	db.Config.Salt = config.Salt
+	
 	if err := db.Connect(); err != nil {
 		log.Fatal("Connect: ", err )
 	}
@@ -33,7 +52,7 @@ func main() {
 	router.HandleFunc("/user/create", createAction).Methods("POST")
 
 	http.Handle("/", router)
-	err := http.ListenAndServe(*port, nil)
+	err = http.ListenAndServe(*port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
